@@ -1,0 +1,3 @@
+"NSAppleEventsUsageDescription" = "Notchturne needs access to Apple Music to show the current track and control playback.";
+"NSCalendarsFullAccessUsageDescription" = "Notchturne needs calendar access to show this month in the notch.";
+"NSCalendarsUsageDescription" = "Notchturne needs calendar access to show this month in the notch.";

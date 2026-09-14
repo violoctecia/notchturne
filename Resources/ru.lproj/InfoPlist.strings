@@ -1,0 +1,3 @@
+"NSAppleEventsUsageDescription" = "Нужен доступ к Apple Music, чтобы показывать текущий трек и управлять воспроизведением.";
+"NSCalendarsFullAccessUsageDescription" = "Нужен доступ к календарю, чтобы показывать месяц в чёлке.";
+"NSCalendarsUsageDescription" = "Нужен доступ к календарю, чтобы показывать месяц в чёлке.";
