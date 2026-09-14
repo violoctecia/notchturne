@@ -98,7 +98,7 @@ struct NotchView: View {
     private var panelSize: CGSize {
         ui.settingsOpen
             ? CGSize(width: ui.settingsWidth, height: PanelLayout.settingsHeight)
-            : PanelLayout.size(settings)
+            : PanelLayout.size(settings, hasTrack: hasTrack)
     }
     private var size: CGSize { open ? panelSize : collapsedSize }
 
@@ -256,18 +256,19 @@ struct NotchView: View {
 
     private var rightEar: some View {
         ZStack {
-            if ui.hoveringPauseEar {
-                Button(action: music.playPause) {
-                    Image(systemName: music.info.state == .playing ? "pause.fill" : "play.fill")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: earBox, height: earBox)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(PressableButtonStyle())
-            } else {
-                Equalizer(playing: music.info.state == .playing)
+            Equalizer(playing: music.info.state == .playing)
+                .opacity(ui.hoveringPauseEar ? 0 : 1)
+
+            Button(action: music.playPause) {
+                Image(systemName: music.info.state == .playing ? "pause.fill" : "play.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: earBox, height: earBox)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(PressableButtonStyle())
+            .opacity(ui.hoveringPauseEar ? 1 : 0)
+            .allowsHitTesting(ui.hoveringPauseEar)
         }
         .frame(width: earBox, height: earBox)
         .animation(.easeOut(duration: 0.15), value: ui.hoveringPauseEar)
@@ -294,12 +295,18 @@ struct NotchView: View {
         } else {
             switch state {
             case .noPermission:
-                message(settings.text.noMusicAccess, settings.text.allowInAutomation,
-                    action: (settings.text.openSettings, openAutomationSettings))
+                sidePanels {
+                    message(settings.text.noMusicAccess, settings.text.allowInAutomation,
+                        action: (settings.text.openSettings, openAutomationSettings))
+                }
             case .notRunning:
-                message(settings.text.musicNotRunning, nil, action: (settings.text.launch, launchMusic))
+                sidePanels {
+                    message(settings.text.musicNotRunning, nil, action: (settings.text.launch, launchMusic))
+                }
             case .stopped:
-                message(settings.text.nothingPlaying, nil, action: nil)
+                sidePanels {
+                    message(settings.text.nothingPlaying, nil, action: nil)
+                }
             case .playing, .paused:
                 player
             }
@@ -307,14 +314,22 @@ struct NotchView: View {
     }
 
     private var player: some View {
-        HStack(alignment: .top, spacing: 0) {
+        sidePanels(includeLyrics: true) {
             HStack(alignment: .top, spacing: 12) {
                 Color.clear.frame(width: panelArt, height: panelArt)
                 infoColumn
             }
-            .frame(width: PanelLayout.music - hPad * 2, height: contentHeight)
+        }
+    }
 
-            if settings.lyrics {
+    @ViewBuilder
+    private func sidePanels<Leading: View>(includeLyrics: Bool = false,
+                                           @ViewBuilder leading: () -> Leading) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            leading()
+                .frame(width: PanelLayout.music - hPad * 2, height: contentHeight)
+
+            if includeLyrics && settings.lyrics {
                 column(width: PanelLayout.lyrics, fade: true) {
                     LyricsColumn(text: settings.text,
                                  lyrics: lyrics,
@@ -494,27 +509,31 @@ private struct Skeleton: View {
 
 private struct Equalizer: View {
     let playing: Bool
-    @State private var up = false
 
-    private let heights: [CGFloat] = [7, 13, 9]
+    private let heights: [CGFloat] = [6, 9, 7]
+    private let periods: [Double] = [0.65, 0.81, 0.97]
+    private let restHeight: CGFloat = 4
 
     var body: some View {
-        HStack(alignment: .center, spacing: 2.5) {
-            ForEach(Array(heights.enumerated()), id: \.offset) { index, full in
-                Capsule()
-                    .fill(Color.white.opacity(0.85))
-                    .frame(width: 2.5, height: playing && up ? full : 3)
-                    .animation(
-                        playing
-                            ? .easeInOut(duration: 0.42 + Double(index) * 0.11)
-                                .repeatForever(autoreverses: true)
-                            : .easeOut(duration: 0.2),
-                        value: up
-                    )
+        TimelineView(.animation(paused: !playing)) { timeline in
+            HStack(alignment: .center, spacing: 2.5) {
+                ForEach(Array(heights.enumerated()), id: \.offset) { index, full in
+                    Capsule()
+                        .fill(Color.white.opacity(0.7))
+                        .frame(width: 2.5,
+                               height: playing ? height(index, full, timeline.date) : restHeight)
+                }
             }
         }
-        .onAppear { up = playing }
-        .onChange(of: playing) { _, isPlaying in up = isPlaying }
+        .animation(.easeOut(duration: 0.2), value: playing)
+    }
+
+    private func height(_ index: Int, _ full: CGFloat, _ date: Date) -> CGFloat {
+        let period = periods[index]
+        let phase = date.timeIntervalSinceReferenceDate
+            .truncatingRemainder(dividingBy: period) / period
+        let wave = (sin(phase * 2 * .pi - .pi / 2) + 1) / 2
+        return restHeight + (full - restHeight) * CGFloat(wave)
     }
 }
 

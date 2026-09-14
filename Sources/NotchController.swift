@@ -32,6 +32,7 @@ final class NotchController {
     private let music: MusicBridge
     private let ui = UIState()
     private var tracker: Timer?
+    private var pendingActivationSince: Date?
 
     init(music: MusicBridge) {
         self.music = music
@@ -70,7 +71,7 @@ final class NotchController {
     private var visibleSize: CGSize {
         ui.settingsOpen
             ? CGSize(width: ui.settingsWidth, height: PanelLayout.settingsHeight)
-            : PanelLayout.size(settings)
+            : PanelLayout.size(settings, hasTrack: hasTrack)
     }
 
     private var visibleRect: CGRect {
@@ -161,8 +162,16 @@ final class NotchController {
             if !visibleRect.insetBy(dx: -hoverPadding, dy: -hoverPadding).contains(mouse) {
                 setExpanded(false)
             }
+            pendingActivationSince = nil
         } else if triggerZone.contains(mouse) {
-            setExpanded(true)
+            let since = pendingActivationSince ?? Date()
+            pendingActivationSince = since
+            if Date().timeIntervalSince(since) * 1000 >= Double(settings.activationDelay) {
+                setExpanded(true)
+                pendingActivationSince = nil
+            }
+        } else {
+            pendingActivationSince = nil
         }
 
         let onEar = !ui.expanded && rightEarZone.contains(mouse)

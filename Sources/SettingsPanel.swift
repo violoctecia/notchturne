@@ -25,6 +25,10 @@ struct SettingsPanel: View {
             row(settings.text.clipboardLimit) {
                 Stepper(value: $settings.clipboardLimit, range: 1...10)
             }
+            row(settings.text.activationDelay) {
+                Stepper(value: $settings.activationDelay, range: 0...500, step: 50,
+                        unit: settings.text.msUnit)
+            }
             row(settings.text.language_) {
                 Segmented(selection: $settings.language)
             }
@@ -112,15 +116,21 @@ private struct Switcher: View {
 private struct Stepper: View {
     @Binding var value: Int
     let range: ClosedRange<Int>
+    var step: Int = 1
+    var unit: String = ""
 
     var body: some View {
         HStack(spacing: 0) {
-            button("minus", enabled: value > range.lowerBound) { value -= 1 }
-            Text("\(value)")
+            button("minus", enabled: value > range.lowerBound) {
+                value = max(range.lowerBound, value - step)
+            }
+            Text(unit.isEmpty ? "\(value)" : "\(value) \(unit)")
                 .font(.system(size: 11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(.white.opacity(0.9))
-                .frame(width: 22)
-            button("plus", enabled: value < range.upperBound) { value += 1 }
+                .frame(width: unit.isEmpty ? 22 : 44)
+            button("plus", enabled: value < range.upperBound) {
+                value = min(range.upperBound, value + step)
+            }
         }
         .background(
             RoundedRectangle(cornerRadius: 5, style: .continuous)

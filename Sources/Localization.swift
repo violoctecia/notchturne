@@ -28,6 +28,8 @@ struct Localized {
     var language_: String    { pick("Язык", "Language") }
     var clipboardLimit: String { pick("Записей в буфере", "Clipboard entries") }
     var menuBarIcon: String { pick("Иконка в строке меню", "Menu bar icon") }
+    var activationDelay: String { pick("Задержка активации", "Activation delay") }
+    var msUnit: String { pick("мс", "ms") }
 
     var clipboardShort: String  { pick("Буфер", "Clipboard") }
     var lookingForLyrics: String { pick("Ищу текст…", "Looking for lyrics…") }
